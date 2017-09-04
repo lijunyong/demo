@@ -1,0 +1,54 @@
+stages:
+  - build_jar
+  - build_image
+  - upload_image
+  - deploy
+######################### build_jar ###############################
+build_jar:
+  stage: build_jar
+  script:
+    - mvn clean package -DskipTests
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - target/*.jar
+  only:
+    - release
+    - master
+  tags:
+    - demo-tag
+
+build_image:
+  stage: build_image
+  script:
+    - mvn docker:build
+  dependencies:
+    - build_jar
+  only:
+    - release
+    - master
+  tags:
+    - demo-tag
+    
+upload_image:
+  stage: upload_image
+  script:
+    - docker login -u root -p Ljy@1990 zipkin.cn:5500
+    - docker push zipkin.cn:5500/lijunyong/demo
+  dependencies:
+    - build_image
+  only:
+    - release
+    - master
+  tags:
+    - demo-tag
+    
+deploy:
+  stage: deploy
+  script:
+    - curl --user 'admin:e0487c1a64ccdbd9efbd033a2dc53758' -X POST  'http://116.62.136.111:8080/job/docker/build?token=lijunyong'
+  dependencies:
+    - upload_image
+  tags:
+    - demo-tag
+
